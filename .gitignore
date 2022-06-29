@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/examples/windows_thunk_test/.vs
+/examples/windows_thunk_test/windows_thunk_test/.vs
+/examples/windows_thunk_test/windows_thunk_test/x64
+/examples/windows_thunk_test/x64
+/examples/windows_thunk_test/windows_thunk_test/Win32
+/examples/windows_thunk_test/Win32
+*.user

@@ -8,7 +8,11 @@ Thunks for Windows (x86 and x64) - or how to pass non-static member functions as
 - works for 32-bit (x86 / IX86) and 64-bit (x64 / X64 / AMD64) builds
 - no restrictions on thunk-deletion (see below)
 
-## why do I need a thunk (and what is it anyway?)
+## requirements
+- C++17 conforming compiler
+- Boost.TypeTraits (or a complete Boost installation)
+
+## what is a thunk and why do I need it?
 When writing C++ code for WIN32 thunks are usually used to solve the following problem:
 
 "I want to call a WIN32-API function that makes a callback to a user defined function. I want that callback to be a non-static member function on some object. But the API only allows static functions."
