@@ -96,10 +96,12 @@ So, we have to create a new frame (move the stack-pointer) with enough place, mo
 
 The member function gets called. But when it ends, strange things happen, e.g. my bunny Luna starts coding
 
-![luna-bunny-coding](/pictures/luna_coding.png)
+![luna-coding](/pictures/luna_coding.png)
 
 
-So, what went wrong? (Something definitely went wrong, since bunnies don't code - they work in project-management.)
+So, what went wrong? Something definitely went wrong, since bunnies don't code - they are consulting experts for secure tunneling.
+
+![luna-checking-tunnel](/pictures/luna_checking_tunnel.png)
 
 In our thunk we moved the stack-pointer but never move it back (there is no magic that resets the stack-pointer to it's original value when return from a call: "ret" simply returns to the address where the stack-pointer currently is and pops that - but nothing more. Back at the caller we had an incorrect stack-pointer ... and strange thing happened.
 
