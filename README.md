@@ -99,33 +99,36 @@ The member function gets called. But when it ends, strange things happen, e.g. m
 ![luna-coding](/pictures/luna_coding.png)
 
 
-So, what went wrong? Something definitely went wrong, since bunnies don't code - they are consulting experts for secure tunneling.
+Something definitely went wrong, since bunnies don't code - they are consulting experts for secure tunneling.
 
 ![luna-checking-tunnel](/pictures/luna_checking_tunnel.png)
 
-In our thunk we moved the stack-pointer but never move it back (there is no magic that resets the stack-pointer to it's original value when return from a call: "ret" simply returns to the address where the stack-pointer currently is and pops that - but nothing more. Back at the caller we had an incorrect stack-pointer ... and strange thing happened.
+So, what went wrong? In our thunk we moved the stack-pointer but never moved it back. There is no magic that resets the stack-pointer to it's original value when returning from a call: `RET` simply returns to the address at the current stack-pointer and pops that - nothing more. Back at the caller we ended up with an incorrect stack-pointer ... and strange things happened.
 
-A solution to his would be `CALL`ing (not jumping to) the member function and readjusting the stack on after the call returned.
+A solution to this would be `CALL`ing (not jumping to) the member function and readjusting the stack after the call returned.
 
-... but then there is this object with a thunk as member that `delete`s itself while in a thunked callback ... CRASH! BOOM! BANG!
+Seems to work ...
 
-What happened here?
+... but then there is this object with a thunk as member that `delete`s itself while in a thunked callback: CRASH! BOOM! BANG!
 
-While in the callback, the thunks destructor got called and it freed the memory with the assembler-code. And when the program returned there we got a page-fault.
+What happened now?
 
-So, if we want to allow deliting the thunk, while running in the thunked callback, then we are not allowed to return to the __dynamically__ allocated memory.
+While in the callback, the thunk's destructor got called and it freed the memory with the assembler-code. And when the program `RET`urned from the callback to it, we got a page-fault.
 
-But of course, we are allowed to return to __static__ allocated memory. 
+So, if we want to `delete` the thunk, while running in the thunked callback, then we are not allowed to return to the __dynamically__ allocated memory.
 
-So, final solution is roughly as follows:
+But of course, we are allowed to return to __static__ memory. 
+
+So, the final solution is roughly as follows:
 - in the dynamic thunk
-  - write the `this`-pointer (and the some additional information) to the shadow space
-  - then jump to (not call!) the static code
+  - write the `this`-pointer (and the some additional data) to the shadow space (we can freely use the shadow space)
+  - then `JuMP` to (not `CALL`!) the static code
 - in the static code
-  - create a new frame (move the stack-pointer) with enough place for all arguments (and some additional place on top)
+  - store the current stack-pointer (and some additional data)
+  - create a new frame, i.e. move the stack-pointer, with enough place for all arguments (and some additional place on top)
   - move all the pieces (stack, registers, `this`-pointer) into place
-  - call the member function
-  - reset stack-pointer after member function returned (and do additional cleanups)
+  - `CALL` the member function
+  - after member function `RET`urned: restore the stack-pointer (and do additional cleanups)
  
 Writing this static piece of assembler code such that it works for any number of arguments, holds some extra hoops to jump through, which are indicated in the parenthesis. For more information search in thunks.hpp for `r12`.
 
