@@ -344,10 +344,12 @@ namespace lunaticpp {
             // cf. http://www.codemachine.com/article_x64deepdive.html
 
 
-            void adjust_arg0_to_arg2_for_floats(boost::array<BYTE, 11>& instr)
-            {
-                // replace int-register movements by xmm-register-movements for float-types
-                // the next if-statements could be templated, but if unnecessary they will get optimized away anyway
+        void adjust_arg0_to_arg2_for_floats(boost::array<BYTE, 11>& instr)
+        {
+            // replace int-register movements by xmm-register-movements for float-types
+            // the next if-statements could be templated, but if unnecessary they will get optimized away anyway
+
+            if constexpr (boost::mpl::size<func_arguments_type>::value >= 3) {
                 if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 2>::type >::type::value)
                 {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -355,6 +357,8 @@ namespace lunaticpp {
                     };
                     memcpy(instr.data(), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
+            }
+            if constexpr (boost::mpl::size<func_arguments_type>::value >= 2) {
                 if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 1>::type >::type::value)
                 {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -362,6 +366,8 @@ namespace lunaticpp {
                     };
                     memcpy(instr.data() + sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
+            }
+            if constexpr (boost::mpl::size<func_arguments_type>::value >= 1) {
                 if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 0>::type >::type::value)
                 {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -370,6 +376,7 @@ namespace lunaticpp {
                     memcpy(instr.data() + 2 * sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
+        }
 
 
             static constexpr auto get_static_thunk() { return aux::_trampoline_for_static_thunk; }
