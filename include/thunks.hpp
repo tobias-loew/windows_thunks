@@ -525,7 +525,7 @@ namespace lunaticpp {
             {
                 static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
 
-                m_code_thunk_bytes = reinterpret_cast<byte*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
+                m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
                 {
                     auto code_thunk = reinterpret_cast<code_thunk_t*>(m_code_thunk_bytes);
                     union { DWORD_PTR func; call_type call; } addr;
