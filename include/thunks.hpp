@@ -54,7 +54,7 @@ namespace lunaticpp {
 #pragma code_seg(push, rtext, ".text")
             __declspec(selectany)
                 __declspec(allocate(".text"))
-                extern const byte _trampoline_for_static_thunk[25]{
+                extern const BYTE _trampoline_for_static_thunk[25]{
 
                 // sub         rsp, 18h 
                 //
@@ -262,7 +262,7 @@ namespace lunaticpp {
 #endif
 
 
-            byte* m_code_thunk_bytes;
+            BYTE* m_code_thunk_bytes;
         public:
             inline static constexpr call_type m_call{ _call };
 
@@ -312,7 +312,7 @@ namespace lunaticpp {
 
                 static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
 
-                m_code_thunk_bytes = reinterpret_cast<byte*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
+                m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
                 {
                     auto code_thunk = reinterpret_cast<code_thunk_t*>(m_code_thunk_bytes);
                     union { DWORD func; call_type call; } addr;
@@ -408,7 +408,7 @@ namespace lunaticpp {
                 //
                 //
 
-                m_code_thunk_bytes = reinterpret_cast<byte*>(VirtualAlloc(NULL, alloc_size, MEM_COMMIT, PAGE_READWRITE));
+                m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, alloc_size, MEM_COMMIT, PAGE_READWRITE));
                 {
                     union { DWORD_PTR func; call_type call; } addr;
                     addr.call = m_call;
@@ -525,7 +525,7 @@ namespace lunaticpp {
             {
                 static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
 
-                m_code_thunk_bytes = reinterpret_cast<byte*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
+                m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
                 {
                     auto code_thunk = reinterpret_cast<code_thunk_t*>(m_code_thunk_bytes);
                     union { DWORD_PTR func; call_type call; } addr;
