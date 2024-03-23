@@ -9,3 +9,7 @@
 /examples/windows_thunk_test/windows_thunk_test/Win32
 /examples/windows_thunk_test/Win32
 *.user
+build/
+cmake-build*/
+.idea/
+Testing/
