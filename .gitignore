@@ -12,3 +12,4 @@
 build/
 cmake-build*/
 .idea/
+Testing/
