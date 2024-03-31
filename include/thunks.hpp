@@ -343,15 +343,27 @@ namespace lunaticpp {
             // information about x64-function calls
             // cf. http://www.codemachine.com/article_x64deepdive.html
 
-
+#if _MSC_VER < 1920
+            // workaround for v141 (seems to always compile code in if constexpr)
+            template<typename FUNC_ARGUMENTS_TYPE>
+            static constexpr bool arg_2_is_float() {
+                return boost::is_float< typename boost::mpl::at_c<FUNC_ARGUMENTS_TYPE, 2>::type >::type::value;
+            }
+#endif
         void adjust_arg0_to_arg2_for_floats(boost::array<BYTE, 11>& instr)
         {
             // replace int-register movements by xmm-register-movements for float-types
             // the next if-statements could be templated, but if unnecessary they will get optimized away anyway
 
             if constexpr (boost::mpl::size<func_arguments_type>::value >= 3) {
-                if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 2>::type >::type::value)
-                {
+                //
+                if constexpr (
+#if _MSC_VER < 1920
+                    arg_2_is_float()
+#else
+                    boost::is_float< typename boost::mpl::at_c<func_arguments_type, 2>::type >::type::value
+#endif
+                ) {
                     static constexpr BYTE mov_reg_to_reg[3] = {
                         0x0F, 0x28, 0xDA                // mov         xmm3,xmm2
                     };
