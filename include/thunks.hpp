@@ -376,8 +376,8 @@ namespace lunaticpp {
                     memcpy(instr.data(), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
-            template<> void handle_arg_2<0>(std::array<BYTE, 11>& instr) {}
-            template<> void handle_arg_2<1>(std::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_2<0>(std::array<BYTE, 11>&) {}
+            template<> void handle_arg_2<1>(std::array<BYTE, 11>&) {}
 
             template<size_t N>
             void handle_arg_1(std::array<BYTE, 11>& instr) {
@@ -389,7 +389,7 @@ namespace lunaticpp {
                     memcpy(instr.data() + sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
-            template<> void handle_arg_1<0>(std::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_1<0>(std::array<BYTE, 11>&) {}
 
 
             template<size_t N>
@@ -504,7 +504,11 @@ namespace lunaticpp {
                     addr.call = m_call;
 
 #if _MSVC_LANG < 201703L
+// prevent triggering a constant condition warning
+#pragma warning( push )
+#pragma warning(disable:4127)
                     if (_args > 4) {
+#pragma warning( pop )
 #else
                     if constexpr (_args > 4) {
 #endif
