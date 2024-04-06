@@ -1,7 +1,7 @@
 
 #include <boost/core/lightweight_test_trait.hpp>
 
-#include "../../include/thunks.hpp"
+#include "../include/thunks.hpp"
 
 class SimpleObject
 {
