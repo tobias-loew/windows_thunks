@@ -1,6 +1,8 @@
 # windows_thunks
 Thunks for Windows (x86 and x64) - or how to pass non-static member functions as Windows-Callbacks
 
+[![CI](https://github.com/tobias-loew/windows_thunks/actions/workflows/ci.yml/badge.svg)](https://github.com/tobias-loew/windows_thunks/actions/workflows/ci.yml)
+
 ## features
 - pass non-static member functions as WIN32 CALLBACK functions
 - full-generic: works for __any__ non-variadic non-static member function
