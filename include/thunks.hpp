@@ -284,7 +284,11 @@ namespace lunaticpp {
 
 #if _MSC_VER >= 1910 && _MSC_VER < 1920
 // msvc 14.1 reports errors on boost::function_types::is_member_function_pointer when call_type is a member of a class template
+#if _MSVC_LANG >= 201703L
+            // C++17 and later even gives errors with std::is_member_function_pointer
+#else
             static_assert(std::is_member_function_pointer<call_type>::value, "thunked function is not a member function");
+#endif
 #else
             static_assert(boost::function_types::is_member_function_pointer<call_type>::value, "thunked function is not a member function");
 #endif
@@ -317,8 +321,12 @@ namespace lunaticpp {
 
 
 #if _MSC_VER >= 1910 && _MSC_VER < 1920
-// msvc 14.1 reports errors on boost::function_types::is_member_function_pointer when call_type is a member of a class template
+            // msvc 14.1 reports errors on boost::function_types::is_member_function_pointer when call_type is a member of a class template
+#if _MSVC_LANG >= 201703L
+            // C++17 and later even gives errors with std::is_member_function_pointer
+#else
             static_assert(std::is_member_function_pointer<call_type>::value, "thunked function is not a member function");
+#endif
 #else
 #if defined(_M_IX86)
             // ensure it's not a variadic function
