@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+
+env:
+  UBSAN_OPTIONS: print_stacktrace=1
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - toolset: msvc-14.0
+            cxxstd: "11,14"
+            addrmd: 32,64
+            os: windows-2019
+            msvcver: 2017
+            environment_script: 'call "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build/vcvars64.bat"'
+          - toolset: msvc-14.1
+            cxxstd: "11,14,17,20,latest"
+            addrmd: 32,64
+            os: windows-2019
+            msvcver: 2017
+            environment_script: 'call "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build/vcvars64.bat"'
+          - toolset: msvc-14.0
+            cxxstd: "11,14"
+            addrmd: 32,64
+            os: windows-2019
+            msvcver: 2019
+
+          # commented since it does not find cl.exe, but msvc-14.1 is tested anyway with VS 2017 above 
+          # - toolset: msvc-14.1
+          #   cxxstd: "11,14,17,20,latest"
+          #   addrmd: 32,64
+          #   os: windows-2019
+          #   msvcver: 2019
+          #   environment_script: 'call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"'
+
+          - toolset: msvc-14.2
+            cxxstd: "14,17,20,latest"
+            addrmd: 32,64
+            os: windows-2019
+            msvcver: 2019
+          - toolset: msvc-14.3
+            cxxstd: "14,17,20,latest"
+            addrmd: 32,64
+            os: windows-2022
+            msvcver: 2022
+          - toolset: clang-win
+            cxxstd: "14,17,latest"
+            addrmd: 32,64
+            os: windows-2022
+            msvcver: 2022
+          - toolset: gcc
+            cxxstd: "11,14,17,2a"
+            addrmd: 64
+            os: windows-2019
+            msvcver: 2019
+            set_env: "set GCC_ON_WINDOWS=1"
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v3
+  
+      - name: Set reusable strings
+        # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+  
+
+      - name: Install MSVC 2017
+        id: install_msvc_2017
+        if: ( matrix.msvcver == 2017 )
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          choco install visualstudio2017community
+          choco install visualstudio2017-workload-nativedesktop
+          choco install visualstudio2017-workload-vctools
+  
+
+      - name: Install MSVC v141 component for VS 2019
+        id: install_msvc_v141_component_vs_2019
+        if: (( matrix.msvcver == 2019 ) && ( matrix.toolset == 'msvc-14.1' ))
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          choco install -y visualstudio2019enterprise --package-parameters="'--add Microsoft.VisualStudio.Component.VC.v141.x86.x64'"
+
+      - name: Install MSVC v141 component for VS 2022
+        id: install_msvc_v141_component_vs_2022
+        if: (( matrix.msvcver == 2022 ) && ( matrix.toolset == 'msvc-14.1' ))
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          choco install -y visualstudio2022enterprise --package-parameters="'--add Microsoft.VisualStudio.Component.VC.v141.x86.x64'"
+
+      - name: Install MSVC v142 component for VS 2019
+        id: install_msvc_v142_component_vs_2019
+        if: (( matrix.msvcver == 2019 ) && ( matrix.toolset == 'msvc-14.2' ))
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          choco install -y visualstudio2019enterprise --package-parameters="'--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64'"
+
+      - name: Install MSVC v142 component for VS 2022
+        id: install_msvc_v142_component_vs_2022
+        if: (( matrix.msvcver == 2022 ) && ( matrix.toolset == 'msvc-14.2' ))
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          choco install -y visualstudio2022enterprise --package-parameters="'--add Microsoft.VisualStudio.ComponentGroup.VC.Tools.142.x86.x64'"
+
+      - name: Setup Boost
+        shell: cmd
+        run: |
+          [ -n "${{ matrix.environment_script }}" ] && "${{ matrix.environment_script }}"
+
+          echo GITHUB_REPOSITORY: %GITHUB_REPOSITORY%
+          for /f %%i in ("%GITHUB_REPOSITORY%") do set LIBRARY=%%~nxi
+          echo LIBRARY: %LIBRARY%
+          echo LIBRARY=%LIBRARY%>>%GITHUB_ENV%
+          echo GITHUB_BASE_REF: %GITHUB_BASE_REF%
+          echo GITHUB_REF: %GITHUB_REF%
+          if "%GITHUB_BASE_REF%" == "" set GITHUB_BASE_REF=%GITHUB_REF%
+          set BOOST_BRANCH=develop
+          for /f %%i in ("%GITHUB_BASE_REF%") do if "%%~nxi" == "master" set BOOST_BRANCH=master
+          echo BOOST_BRANCH: %BOOST_BRANCH%
+          cd ..
+          git clone -b %BOOST_BRANCH% --depth 1 https://github.com/boostorg/boost.git boost-root
+          cd boost-root
+          xcopy /s /e /q %GITHUB_WORKSPACE% libs\%LIBRARY%\
+          git submodule update --init tools/boostdep
+          python tools/boostdep/depinst/depinst.py --git_args "--jobs 3" %LIBRARY%
+          cmd /c bootstrap
+          b2 --verbose -d0 headers
+
+      - name: Run tests
+        shell: cmd
+        run: |
+          [ -n "${{ matrix.environment_script }}" ] && "${{ matrix.environment_script }}"
+          ${{ matrix.set_env }}
+
+          cd ../boost-root
+          b2 --verbose -j3 libs/%LIBRARY%/test toolset=${{matrix.toolset}} cxxstd=${{matrix.cxxstd}} address-model=${{matrix.addrmd}} variant=debug,release embed-manifest-via=linker

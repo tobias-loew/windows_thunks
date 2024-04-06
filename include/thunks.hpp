@@ -18,6 +18,8 @@
 #define BOOST_FT_AUTODETECT_CALLING_CONVENTIONS
 #endif
 
+#include <array>
+
 #include <boost/function_types/config/config.hpp>
 #include <boost/type_traits/is_float.hpp>
 #include <boost/function_types/function_type.hpp>
@@ -35,7 +37,6 @@
 #include <boost/mpl/max_element.hpp>
 #include <boost/mpl/less.hpp>
 #include <boost/mpl/sizeof.hpp>
-#include <boost/array.hpp>
 
 #include <windows.h>
 
@@ -149,7 +150,7 @@ namespace lunaticpp {
                 // 4C 8B C2         mov         r8,rdx 
                 // 48 8B D1         mov         rdx,rcx
                 // 48 B9 08 07 06 05 04 03 02 01 mov         rcx,102030405060708h 
-                boost::array<BYTE, 11>	m_mov_registers_up_mov_this_to_rcx;
+                std::array<BYTE, 11>	m_mov_registers_up_mov_this_to_rcx;
                 DWORD_PTR	m_this;
 
                 // example
@@ -198,11 +199,11 @@ namespace lunaticpp {
             struct code_thunk_complex_rest_mov_arg4 {
                 // example
                 // 4C 89 4C 24 20       mov         qword ptr [rsp+20h],r9          // integer/pointer
-                boost::array<BYTE, 5>	m_mov_arg4_to_stack;
+                std::array<BYTE, 5>	m_mov_arg4_to_stack;
 
                 void init()
                 {
-                    static constexpr boost::array<BYTE, 5> mov_arg4_to_stack = {
+                    static constexpr std::array<BYTE, 5> mov_arg4_to_stack = {
                         0x4C, 0x89, 0x4C, 0x24, 0x08   // mov         qword ptr [rsp+08h],r9  
                     };
                     m_mov_arg4_to_stack = mov_arg4_to_stack;
@@ -215,11 +216,11 @@ namespace lunaticpp {
             struct code_thunk_complex_rest_mov_arg4<true> {
                 // example
                 // F2 0F 11 5C 24 20    movsd       mmword ptr [rsp+20h],xmm3       // float
-                boost::array<BYTE, 6>	m_mov_arg4_to_stack;
+                std::array<BYTE, 6>	m_mov_arg4_to_stack;
 
                 void init()
                 {
-                    static constexpr boost::array<BYTE, 6> mov_arg4_to_stack = {
+                    static constexpr std::array<BYTE, 6> mov_arg4_to_stack = {
                         0xF2, 0x0F, 0x11, 0x5C, 0x24, 0x08   // movsd       mmword ptr [rsp+08h],xmm3
                     };
                     m_mov_arg4_to_stack = mov_arg4_to_stack;
@@ -237,7 +238,7 @@ namespace lunaticpp {
                 // 4C 8B C2             mov         r8,rdx  
                 // 48 8B D1             mov         rdx,rcx  
                 // 48 B9 08 07 06 05 04 03 02 01 mov         rcx,102030405060708h 
-                boost::array<BYTE, 11>	m_mov_reg_to_reg_up_mov_this_to_rcx;
+                std::array<BYTE, 11>	m_mov_reg_to_reg_up_mov_this_to_rcx;
                 DWORD_PTR	m_this;
 
 
@@ -248,7 +249,7 @@ namespace lunaticpp {
 
 
 
-                boost::array<BYTE, 21>	m_mov_r12_to_rsp_x_store_rsp;
+                std::array<BYTE, 21>	m_mov_r12_to_rsp_x_store_rsp;
 
 
                 // example
@@ -366,7 +367,7 @@ namespace lunaticpp {
 #if _MSVC_LANG < 201703L
 
             template<size_t N>
-            void handle_arg_2(boost::array<BYTE, 11>& instr) {
+            void handle_arg_2(std::array<BYTE, 11>& instr) {
 
                 if (arg_n_is_float<2>()) {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -375,11 +376,11 @@ namespace lunaticpp {
                     memcpy(instr.data(), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
-            template<> void handle_arg_2<0>(boost::array<BYTE, 11>& instr) {}
-            template<> void handle_arg_2<1>(boost::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_2<0>(std::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_2<1>(std::array<BYTE, 11>& instr) {}
 
             template<size_t N>
-            void handle_arg_1(boost::array<BYTE, 11>& instr) {
+            void handle_arg_1(std::array<BYTE, 11>& instr) {
 
                 if (arg_n_is_float<1>()) {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -388,11 +389,11 @@ namespace lunaticpp {
                     memcpy(instr.data() + sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
-            template<> void handle_arg_1<0>(boost::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_1<0>(std::array<BYTE, 11>& instr) {}
 
 
             template<size_t N>
-            void handle_arg_0(boost::array<BYTE, 11>& instr) {
+            void handle_arg_0(std::array<BYTE, 11>& instr) {
 
                 if (arg_n_is_float<0>()) {
                     static constexpr BYTE mov_reg_to_reg[3] = {
@@ -405,7 +406,7 @@ namespace lunaticpp {
 #endif
 
 
-        void adjust_arg0_to_arg2_for_floats(boost::array<BYTE, 11>& instr)
+        void adjust_arg0_to_arg2_for_floats(std::array<BYTE, 11>& instr)
         {
             // replace int-register movements by xmm-register-movements for float-types
             // the next if-statements could be templated, but if unnecessary they will get optimized away anyway
@@ -532,7 +533,7 @@ namespace lunaticpp {
                     }
 
 
-                    static constexpr boost::array<BYTE, 11> mov_reg_to_reg_up_mov_this_to_rcx = {
+                    static constexpr std::array<BYTE, 11> mov_reg_to_reg_up_mov_this_to_rcx = {
                         0x4D, 0x8B, 0xC8,               // mov         r9,r8  
                         0x4C, 0x8B, 0xC2,               // mov         r8,rdx  
                         0x48, 0x8B, 0xD1,               // mov         rdx,rcx  
@@ -555,7 +556,7 @@ namespace lunaticpp {
                     code_thunk_rest->m_absproc = addr.func;
 
 
-                    static constexpr boost::array<BYTE, 21> mov_r12_to_rsp_x_store_rsp = {
+                    static constexpr std::array<BYTE, 21> mov_r12_to_rsp_x_store_rsp = {
                         // save r12 (non-volatile) to use for stack address on return
             //            4C 89 64 24 30       mov         qword ptr[rsp + 30h], r12
                             0x4C, 0x89, 0x64, 0x24, (0x8 * _args),
@@ -623,7 +624,7 @@ namespace lunaticpp {
                     union { DWORD_PTR func; call_type call; } addr;
                     addr.call = m_call;
 
-                    static constexpr boost::array<BYTE, 11> mov_registers_up_mov_this_to_rcx = {
+                    static constexpr std::array<BYTE, 11> mov_registers_up_mov_this_to_rcx = {
                         0x4D, 0x8B, 0xC8,
                         0x4C, 0x8B, 0xC2,
                         0x48, 0x8B, 0xD1,
