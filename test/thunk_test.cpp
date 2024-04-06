@@ -1,8 +1,10 @@
+struct IUnknown;
 
 #include <boost/core/lightweight_test_trait.hpp>
 #include <boost/mp11.hpp>
 
 #include "../include/thunks.hpp"
+
 
 class SimpleObject
 {

@@ -281,7 +281,11 @@ namespace lunaticpp {
 
             // template-helpers for function type (de-)composition
 
+#if _MSC_VER >= 1910 && _MSC_VER < 1920
+// msvc 14.1 reports errors on boost::function_types::is_member_function_pointer when call_type is a member of a class template
+#else
             static_assert(boost::function_types::is_member_function_pointer<call_type>::value, "thunked function is not a member function");
+#endif
 
 
             typedef typename boost::function_types::components< call_type >::type func_components_type;
@@ -309,12 +313,17 @@ namespace lunaticpp {
 #endif
             >::type callback_function_type;
 
+
+#if _MSC_VER >= 1910 && _MSC_VER < 1920
+// msvc 14.1 reports errors on boost::function_types::is_member_function_pointer when call_type is a member of a class template
+#else
 #if defined(_M_IX86)
             // ensure it's not a variadic function
             static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::thiscall_cc>::value, "thunked function is not a member function");
 #elif defined(_M_X64)
             // ensure it's not a variadic function
             static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::non_variadic>::value, "thunked function is not a member function");
+#endif
 #endif
 
 
