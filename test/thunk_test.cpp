@@ -64,6 +64,7 @@ namespace struct_test {
 
         void foo() {
             auto   VEH_Handle = AddVectoredExceptionHandler(true, (PVECTORED_EXCEPTION_HANDLER)m_thunk_PvectoredExceptionHandler.func());
+            (void)(VEH_Handle);
         }
 
         void  HookMe() {
@@ -179,6 +180,7 @@ namespace struct_template_test {
 
         void foo() {
             auto   VEH_Handle = AddVectoredExceptionHandler(true, (PVECTORED_EXCEPTION_HANDLER)m_thunk_PvectoredExceptionHandler.func());
+            (void)(VEH_Handle);
         }
 
         void  HookMe() {
