@@ -53,17 +53,6 @@ jobs:
             addrmd: 32,64
             os: windows-2022
             msvcver: 2022
-          - toolset: clang-win
-            cxxstd: "14,17,latest"
-            addrmd: 32,64
-            os: windows-2022
-            msvcver: 2022
-          - toolset: gcc
-            cxxstd: "11,14,17,2a"
-            addrmd: 64
-            os: windows-2019
-            msvcver: 2019
-            set_env: "set GCC_ON_WINDOWS=1"
 
     runs-on: ${{matrix.os}}
 
