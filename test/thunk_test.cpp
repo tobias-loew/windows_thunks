@@ -55,7 +55,7 @@ namespace struct_test {
             p_hook = this;
         }
 
-        LONG PvectoredExceptionHandler(_EXCEPTION_POINTERS* ExceptionInfo)
+        LONG PvectoredExceptionHandler(_EXCEPTION_POINTERS* /*ExceptionInfo*/)
         {
             return 0;
         }
@@ -171,7 +171,7 @@ namespace struct_template_test {
             p_hook = this;
         }
 
-        LONG PvectoredExceptionHandler(_EXCEPTION_POINTERS* ExceptionInfo)
+        LONG PvectoredExceptionHandler(_EXCEPTION_POINTERS* /*ExceptionInfo*/)
         {
             return 0;
         }
