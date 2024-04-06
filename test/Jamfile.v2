@@ -26,5 +26,5 @@ project
   ;
 
 
-run thun_test.cpp ;
+run thunk_test.cpp ;
 
