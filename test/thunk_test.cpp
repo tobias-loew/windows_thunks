@@ -15,7 +15,7 @@ public:
 void member_func_test()
 {
     SimpleObject dt;
-    lunaticpp::thunk<&SimpleObject::add> thunk(&dt);
+    lunaticpp::thunk<LUNATIC_THUNKS_MAKE_CALL(SimpleObject::add)> thunk(&dt);
     int (*add)(int,int)=thunk.func();
 
     auto result=add(1,2);
@@ -24,8 +24,9 @@ void member_func_test()
 
 void std_function_test()
 {
-    std::function<int(int, int)> f=[](int a, int b){return a+b;};
-    lunaticpp::thunk<&std::function<int(int, int)>::operator ()> thunk(&f);
+    using func_type = int(int, int);
+    std::function<func_type> f=[](int a, int b){return a+b;};
+    lunaticpp::thunk< LUNATIC_THUNKS_MAKE_CALL(std::function<func_type>::operator ())> thunk(&f);
     int (*add)(int,int)=thunk.func();
 
     auto result=add(1,2);
