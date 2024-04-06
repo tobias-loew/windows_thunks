@@ -43,7 +43,6 @@
 // ensures that structs/clases are packed dense
 #pragma pack(push, 1)
 
-
 namespace lunaticpp {
 
         namespace aux {
@@ -101,9 +100,9 @@ namespace lunaticpp {
             };
 
 #if defined(_M_IX86)
-            static_assert(sizeof(memfunc_with_adjustor) == (sizeof(void*) + sizeof(DWORD)));
+            static_assert(sizeof(memfunc_with_adjustor) == (sizeof(void*) + sizeof(DWORD)), "struct size/layout error");
 #elif defined(_M_X64)
-            static_assert(sizeof(memfunc_with_adjustor) == (sizeof(void*) + sizeof(DWORD) + sizeof(DWORD)));
+            static_assert(sizeof(memfunc_with_adjustor) == (sizeof(void*) + sizeof(DWORD) + sizeof(DWORD)), "struct size/layout error");
 #else
 #error not supported
 #endif
@@ -115,8 +114,17 @@ namespace lunaticpp {
 
         };
 
+#if _MSVC_LANG < 201703L || (defined(LUNATIC_THUNKS_CPP14_COMPAT) && LUNATIC_THUNKS_CPP14_COMPAT)
+#define LUNATIC_THUNKS_MAKE_CALL(F) decltype(&F), &F
+
+        // this is the new version, using template parametrized constructors
+        template <typename CallType, CallType _call>
+#else
+#define LUNATIC_THUNKS_MAKE_CALL(F) &F
+
         // this is the new version, using template parametrized constructors
         template <auto _call>
+#endif
         struct thunk
         {
         public:
@@ -264,12 +272,15 @@ namespace lunaticpp {
 
             BYTE* m_code_thunk_bytes;
         public:
+#if _MSVC_LANG < 201703L
+            static constexpr call_type m_call{ _call };
+#else
             inline static constexpr call_type m_call{ _call };
-
+#endif
 
             // template-helpers for function type (de-)composition
 
-            static_assert(boost::function_types::is_member_function_pointer<call_type>::value);
+            static_assert(boost::function_types::is_member_function_pointer<call_type>::value, "thunked function is not a member function");
 
 
             typedef typename boost::function_types::components< call_type >::type func_components_type;
@@ -299,10 +310,10 @@ namespace lunaticpp {
 
 #if defined(_M_IX86)
             // ensure it's not a variadic function
-            static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::thiscall_cc>::value);
+            static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::thiscall_cc>::value, "thunked function is not a member function");
 #elif defined(_M_X64)
             // ensure it's not a variadic function
-            static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::non_variadic>::value);
+            static_assert(boost::function_types::is_member_function_pointer<call_type, boost::function_types::non_variadic>::value, "thunked function is not a member function");
 #endif
 
 
@@ -310,7 +321,7 @@ namespace lunaticpp {
             {
 #ifdef _M_IX86
 
-                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
+                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size, "struct size/layout error");
 
                 m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
                 {
@@ -334,7 +345,7 @@ namespace lunaticpp {
 #else
 #error not supported
 #endif
-        }
+            }
 
 
 
@@ -343,23 +354,75 @@ namespace lunaticpp {
             // information about x64-function calls
             // cf. http://www.codemachine.com/article_x64deepdive.html
 
-#if _MSC_VER < 1920
+#if _MSC_VER < 1920 || _MSVC_LANG < 201703L
             // workaround for v141 (seems to always compile code in if constexpr)
-            template<typename FUNC_ARGUMENTS_TYPE>
-            static constexpr bool arg_2_is_float() {
-                return boost::is_float< typename boost::mpl::at_c<FUNC_ARGUMENTS_TYPE, 2>::type >::type::value;
+            template<size_t N>
+            static constexpr bool arg_n_is_float() {
+                return boost::is_float< typename boost::mpl::at_c<func_arguments_type, N>::type >::type::value;
             }
 #endif
+
+
+#if _MSVC_LANG < 201703L
+
+            template<size_t N>
+            void handle_arg_2(boost::array<BYTE, 11>& instr) {
+
+                if (arg_n_is_float<2>()) {
+                    static constexpr BYTE mov_reg_to_reg[3] = {
+                        0x0F, 0x28, 0xDA                // mov         xmm3,xmm2
+                    };
+                    memcpy(instr.data(), mov_reg_to_reg, sizeof(mov_reg_to_reg));
+                }
+            }
+            template<> void handle_arg_2<0>(boost::array<BYTE, 11>& instr) {}
+            template<> void handle_arg_2<1>(boost::array<BYTE, 11>& instr) {}
+
+            template<size_t N>
+            void handle_arg_1(boost::array<BYTE, 11>& instr) {
+
+                if (arg_n_is_float<1>()) {
+                    static constexpr BYTE mov_reg_to_reg[3] = {
+                        0x0F, 0x28, 0xD1                // mov         xmm2,xmm1
+                    };
+                    memcpy(instr.data() + sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
+                }
+            }
+            template<> void handle_arg_1<0>(boost::array<BYTE, 11>& instr) {}
+
+
+            template<size_t N>
+            void handle_arg_0(boost::array<BYTE, 11>& instr) {
+
+                if (arg_n_is_float<0>()) {
+                    static constexpr BYTE mov_reg_to_reg[3] = {
+                        0x0F, 0x28, 0xC8                // mov         xmm1,xmm0
+                    };
+                    memcpy(instr.data() + 2 * sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
+                }
+            }
+
+#endif
+
+
         void adjust_arg0_to_arg2_for_floats(boost::array<BYTE, 11>& instr)
         {
             // replace int-register movements by xmm-register-movements for float-types
             // the next if-statements could be templated, but if unnecessary they will get optimized away anyway
 
-            if constexpr (boost::mpl::size<func_arguments_type>::value >= 3) {
+
+#if _MSVC_LANG < 201703L
+            handle_arg_2<boost::mpl::size<func_arguments_type>::value>(instr);
+            handle_arg_1<boost::mpl::size<func_arguments_type>::value>(instr);
+            handle_arg_0<boost::mpl::size<func_arguments_type>::value>(instr);
+
+#else // _MSVC_LANG < 201703L
+
+            if constexpr(boost::mpl::size<func_arguments_type>::value >= 3) {
                 //
                 if constexpr (
 #if _MSC_VER < 1920
-                    arg_2_is_float()
+                    arg_n_is_float<2>()
 #else
                     boost::is_float< typename boost::mpl::at_c<func_arguments_type, 2>::type >::type::value
 #endif
@@ -371,7 +434,13 @@ namespace lunaticpp {
                 }
             }
             if constexpr (boost::mpl::size<func_arguments_type>::value >= 2) {
-                if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 1>::type >::type::value)
+                if constexpr (
+#if _MSC_VER < 1920
+                    arg_n_is_float<1>()
+#else
+                    boost::is_float< typename boost::mpl::at_c<func_arguments_type, 1>::type >::type::value
+#endif
+                    )
                 {
                     static constexpr BYTE mov_reg_to_reg[3] = {
                         0x0F, 0x28, 0xD1                // mov         xmm2,xmm1
@@ -380,7 +449,13 @@ namespace lunaticpp {
                 }
             }
             if constexpr (boost::mpl::size<func_arguments_type>::value >= 1) {
-                if constexpr (boost::is_float< typename boost::mpl::at_c<func_arguments_type, 0>::type >::type::value)
+                if constexpr (
+#if _MSC_VER < 1920
+                    arg_n_is_float<0>()
+#else
+                    boost::is_float< typename boost::mpl::at_c<func_arguments_type, 0>::type >::type::value
+#endif
+                    )
                 {
                     static constexpr BYTE mov_reg_to_reg[3] = {
                         0x0F, 0x28, 0xC8                // mov         xmm1,xmm0
@@ -388,6 +463,8 @@ namespace lunaticpp {
                     memcpy(instr.data() + 2 * sizeof(mov_reg_to_reg), mov_reg_to_reg, sizeof(mov_reg_to_reg));
                 }
             }
+
+#endif // _MSVC_LANG < 201703L
         }
 
 
@@ -397,9 +474,9 @@ namespace lunaticpp {
             template< size_t _args >
             void create_thunk(DWORD_PTR pThis)
             {
-                static_assert(_args >= 4);
-                static_assert(_args <= 15); // if args > 15  code_thunk_stack->m_stack_offset will get negative (>= 0x80)
-                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
+                static_assert(_args >= 4, "too few args");
+                static_assert(_args <= 15, "too many args"); // if args > 15  code_thunk_stack->m_stack_offset will get negative (>= 0x80)
+                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size, "struct size/layout error");
 
 
 
@@ -425,8 +502,11 @@ namespace lunaticpp {
                     union { DWORD_PTR func; call_type call; } addr;
                     addr.call = m_call;
 
+#if _MSVC_LANG < 201703L
+                    if (_args > 4) {
+#else
                     if constexpr (_args > 4) {
-
+#endif
                         // move stack args down by 10h - yes, we're moving down into the shadow space!
                         for (size_t i = 0; i < _args - 4; ++i)
                         {
@@ -535,7 +615,7 @@ namespace lunaticpp {
 
             void create_thunk_lt_4_args(DWORD_PTR pThis)
             {
-                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size);
+                static_assert(sizeof(call_type) == aux::memfunc_size< sizeof(call_type) >::size, "struct size/layout error");
 
                 m_code_thunk_bytes = reinterpret_cast<BYTE*>(VirtualAlloc(NULL, sizeof(code_thunk_t), MEM_COMMIT, PAGE_READWRITE));
                 {
@@ -605,6 +685,12 @@ namespace lunaticpp {
                 return reinterpret_cast<callback_function_type>(m_code_thunk_bytes);
             }
     };
+
+
+//#if _MSVC_LANG < 201703L
+//    template <typename CallType, CallType& _call>
+//    constexpr typename thunk<CallType, _call>::call_type thunk<CallType, _call>::m_call{ _call };
+//#endif
 
 }	//	namespace lunaticpp
 
